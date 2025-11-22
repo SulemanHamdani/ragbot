@@ -1,0 +1,48 @@
+You: Hello!
+Assistant: Hello! How can I help you today?
+
+-------------------------------------
+
+You: What are the production Dos for RAG?                               
+Assistant: 1. Use hybrid search (vector + BM25) as the baseline.  
+2. Implement metadata filtering (security‑critical). Example filter: {"department": "finance", "access_level": user.role}.  
+3. Monitor retrieval quality (recall@k, NDCG) — tools: TruLens, LangSmith, DeepEval.  
+4. Keep embeddings fresh (re-index on document changes).  
+5. Evaluate systematically (not "vibes‑based").
+
+-------------------------------------
+
+You: What is the difference between standard retrieval and the ColPali approach?
+Assistant: - Standard retrieval (standard RAG for PDFs): relies on OCR/text extraction and text-only embeddings. This often fails on complex layouts (tables, figures), loses visual context, and yields large information loss on visual documents (~40–60%).
+
+- ColPali approach: treats pages as images (no OCR). It uses a vision‑language model (PaliGemma-3B), splits a page into 32×32 patches (≈1,024 patch embeddings per page), and uses ColBERT late‑interaction matching for retrieval. This image‑based embedding approach avoids OCR errors and showed about a 15% improvement over standard OCR‑based retrieval in the provided context.
+
+-------------------------------------
+
+You: what is multi-hop reasoning problem?
+Assistant: Multi‑hop reasoning problem: queries require connecting information from multiple distinct chunks/sources, but traditional RAG retrieves isolated chunks and fails to "connect the dots." 
+
+Example from the context: the complex query "What are the regulatory implications of our Q3 marketing strategy for the European market?" yields separate retrieved chunks like:
+- "Q3 marketing strategy increased social media spend"
+- "European market regulations overview"
+- "GDPR compliance requirements"
+
+Problem: those isolated pieces don’t get linked (Marketing → Budget → Compliance → GDPR → Europe), so the system can't form a coherent answer. The provided context says this is when Graph RAG (using graph databases like Neo4j, TigerGraph, MemGraph, ArangoDB, etc.) is needed to represent and follow connections and improve reliability with the LLM.
+
+-------------------------------------
+
+You: what are production donts?
+Assistant: Production don’ts (from the provided context):
+
+1. Vector‑only search (use hybrid).  
+2. Ignore access controls (data leakage = lawsuit).  
+3. Overload the context window (keep <50%).  
+4. Skip evaluation frameworks (doesn't scale).  
+5. Neglect data freshness (stale = wrong answers).
+
+-------------------------------------
+
+You: what is the center of our solar system?
+Assistant: I do not know based on the provided context.
+
+-------------------------------------
