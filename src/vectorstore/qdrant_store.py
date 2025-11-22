@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Iterable, List, Optional
+from uuid import uuid4
 
 from qdrant_client import QdrantClient
 from qdrant_client.http import models as qmodels
@@ -42,14 +43,15 @@ def upsert_chunks(
 ) -> None:
     collection_name = settings.qdrant.collection_name
     points = []
-    for idx, (embedding, chunk) in enumerate(zip(embeddings, chunks)):
+    for embedding, chunk in zip(embeddings, chunks):
         payload = {
             "text": chunk.text,
             "source": chunk.source,
             "filename": chunk.filename,
             "chunk_id": chunk.chunk_id,
         }
-        points.append(qmodels.PointStruct(id=idx, vector=embedding, payload=payload))
+        point_id = uuid4().hex
+        points.append(qmodels.PointStruct(id=point_id, vector=embedding, payload=payload))
     client.upsert(collection_name=collection_name, points=points)
 
 
@@ -63,6 +65,14 @@ def search_similar(
     query_filter: Optional[qmodels.Filter] = None
     if source_filter:
         query_filter = qmodels.Filter(must=[qmodels.FieldCondition(key="source", match=qmodels.MatchValue(value=source_filter))])
+    if hasattr(client, "query_points"):
+        response = client.query_points(
+            collection_name=collection_name,
+            query=query_embedding,
+            limit=limit,
+            query_filter=query_filter,
+        )
+        return list(response.points)
     return client.search(
         collection_name=collection_name,
         query_vector=query_embedding,

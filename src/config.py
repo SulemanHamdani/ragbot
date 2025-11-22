@@ -15,9 +15,9 @@ load_dotenv()
 @dataclass(slots=True)
 class OpenAISettings:
     api_key: str = field(default_factory=lambda: os.getenv("OPENAI_API_KEY", ""))
-    embedding_model: str = field(default_factory=lambda: os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small"))
-    chat_model: str = field(default_factory=lambda: os.getenv("OPENAI_CHAT_MODEL", "gpt-5.1-mini"))
-    transcription_model: str = field(default_factory=lambda: os.getenv("OPENAI_TRANSCRIPTION_MODEL", "whisper-1"))
+    embedding_model: str = field(default_factory=lambda: os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-large"))
+    chat_model: str = field(default_factory=lambda: os.getenv("OPENAI_CHAT_MODEL", "gpt-5-mini"))
+    transcription_model: str = field(default_factory=lambda: os.getenv("OPENAI_TRANSCRIPTION_MODEL", "gpt-4o-transcribe"))
 
     def validate(self) -> None:
         if not self.api_key:

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List
+from typing import Iterable, List, Sequence, Tuple
 
 from openai import AsyncOpenAI
 
@@ -42,19 +42,60 @@ class RAGChatbot:
             )
         return contexts
 
-    async def answer(self, question: str, limit: int = 5) -> str:
+    async def answer(
+        self,
+        question: str,
+        limit: int = 5,
+        conversation_history: Sequence[Tuple[str, str]] | None = None,
+    ) -> str:
         contexts = await self.retrieve(question, limit=limit)
         context_block = "\n\n".join(
             [f"[source={c.source} file={c.filename} chunk={c.chunk_id}] {c.text}" for c in contexts]
         )
-        prompt = (
-            "You are a concise assistant. Use the provided context to answer the question. "
-            "If the answer is not in the context, say you do not know.\n\n"
-            f"Context:\n{context_block}\n\nQuestion: {question}\nAnswer:"
-        )
+        history_text = _format_history(conversation_history)
+        prompt = f"""
+        You are a concise, highly reliable assistant.
+
+        Use ONLY the information in the provided context and conversation history to answer the question.
+        Do NOT invent facts, names, numbers, or assumptions that are not supported by the context.
+
+        If the answer is not clearly supported by the context, reply exactly:
+        "I do not know based on the provided context."
+
+        Resolve references like "he", "she", "they", "it", or "this" using the conversation history and context.
+        - If you can clearly resolve the reference, use the correct entity.
+        - If the reference is ambiguous or cannot be resolved with high confidence, say that it is ambiguous and do NOT guess.
+
+        Follow these rules:
+        1. Base your answer only on the context and conversation history below.
+        2. If multiple interpretations are possible, briefly mention the ambiguity.
+        3. Be as concise as possible while still being clear.
+        4. Do NOT answer with information from outside the context, even if you know it.
+
+        Conversation history:
+        {history_text}
+
+        Retrieved context:
+        {context_block}
+
+        Question:
+        {question}
+
+        Answer:
+        """
+
         completion = await self.client.chat.completions.create(
             model=settings.openai.chat_model,
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.2,
         )
         return completion.choices[0].message.content or ""
+
+
+def _format_history(history: Sequence[Tuple[str, str]] | None) -> str:
+    if not history:
+        return "None."
+    lines: List[str] = []
+    for question, answer in history:
+        lines.append(f"User: {question}")
+        lines.append(f"Assistant: {answer}")
+    return "\n".join(lines)
