@@ -1,3 +1,0 @@
-What are the production Do's for RAG?
-What is the difference between standard retrieval and the ColPali approach?
-Why is hybrid search better than vector-only search?
