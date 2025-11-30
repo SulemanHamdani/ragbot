@@ -1,6 +1,6 @@
 # RAGBot
 
-RAGBot is an asynchronous retrieval-augmented generation pipeline for ingesting PDFs and audio, storing embeddings in Qdrant, and answering questions with GPT 5.1-mini plus Whisper-based transcription. This README walks through environment setup, data ingestion, interactive querying, and the engineering decisions behind the system.
+RAGBot is an asynchronous retrieval-augmented generation pipeline for ingesting PDFs and audio, storing embeddings in Qdrant, and answering questions with GPT 5.1-mini plus Whisper-based transcription. It now uses a **Pydantic AI agent** with pluggable tools (`vector_search`, `web_search` via SerpAPI) and post-turn **LLM-as-a-Judge** scoring powered by `pydantic-evals`. This README walks through environment setup, data ingestion, interactive querying, and the engineering decisions behind the system.
 
 ## 1. Prerequisites
 
@@ -67,9 +67,8 @@ RAGBot is an asynchronous retrieval-augmented generation pipeline for ingesting 
    OPENAI_API_KEY=sk-your-openai-key
    QDRANT_URL=http://localhost:6333
    QDRANT_COLLECTION=ragbot-collection
-   # Optional tunables
-   AUDIO_CHUNK_MAX_SECONDS=1300
-   AUDIO_CHUNK_OVERLAP_SECONDS=10
+   SERPAPI_API_KEY=your-serpapi-key
+   LOGFIRE_TOKEN=your-logfire-token
    ```
    The application automatically loads `.env` through `python-dotenv` during startup.
 
@@ -116,6 +115,10 @@ PYTHONPATH=$PWD uv run python -m scripts.ask_questions \
 
 - Enter each user turn at the `You:` prompt.
 - Hit Enter on a blank line to exit.
+- Runtime prints:
+  - `[answer] …` the model response
+  - `[metrics] running evals...`
+  - `[metrics] {...}` containing LLM-judge scores
 
 ## 7. Engineering Walkthrough
 
@@ -138,6 +141,19 @@ PYTHONPATH=$PWD uv run python -m scripts.ask_questions \
 - `answer()` accepts the current question plus the sequential conversation history collected by `scripts/ask_questions.py`.
 - The prompt explicitly instructs GPT 5.1-mini to use only the supplied context and history, resolve references carefully, and return “I do not know based on the provided context.” when facts are missing. Conversation history is rendered as alternating user and assistant messages so the model can ground pronouns and follow-up questions correctly.
 
+### 7.5 Pydantic AI Agent, Tools, and Web Search
+- Agent factory (`src/agent/agent.py`) builds a Pydantic AI `Agent` with retries and the system prompt.
+- Tools are registered in `src/agent/tools.py`:
+  - `vector_search`: queries Qdrant with fresh embeddings for the user question.
+  - `web_search`: SerpAPI-backed Google search when KB context is insufficient; requires `SERPAPI_API_KEY`.
+- SerpAPI client is only created when the key is present; otherwise the tool returns an explanatory message.
+
+### 7.6 LLM-as-a-Judge Metrics
+- After every answer, `src/agent/metrics.py` calls Pydantic Evals’ `judge_input_output` with rubric “factually correct, relevant, concise, safe.”
+- Judge model defaults to `openai:gpt-5-nano` with deterministic settings; set `OPENAI_API_KEY` for access.
+- The metrics payload includes `llm_judge_score`, `llm_judge_pass`, `llm_judge_reason`, and `judge_model`, printed in the interactive loop.
+- Optional telemetry: if `LOGFIRE_TOKEN` is set, Logfire instrumentation (configured in `src/agent/agent.py`) sends eval spans/results to the Logfire UI.
+
 ## 8. Operational Tips
 
 - **Testing**: Run `python -m compileall src scripts` (or `uv run python -m compileall src scripts`) after edits to catch syntax errors quickly.
@@ -155,4 +171,3 @@ PY` to confirm that mandatory keys like `OPENAI_API_KEY` are present.
 | Install dependencies | `uv sync --python 3.11` |
 | Run ingestion | `PYTHONPATH=$PWD uv run python -m scripts.run_ingestion --pdf-dir data/pdf --audio-dir data/audio --collection ragbot-collection` |
 | Interactive QA | `PYTHONPATH=$PWD uv run python -m scripts.ask_questions --collection ragbot-collection --limit 5 --interactive` |
-
