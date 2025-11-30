@@ -39,10 +39,25 @@ class QdrantSettings:
 
 
 @dataclass(slots=True)
+class WebSearchSettings:
+    api_key: str = field(default_factory=lambda: os.getenv("SERPAPI_API_KEY", ""))
+
+
+@dataclass(slots=True)
+class LogfireSettings:
+    token: str = field(default_factory=lambda: os.getenv(
+        "LOGFIRE_TOKEN",
+        "",
+    ))
+
+
+@dataclass(slots=True)
 class AppSettings:
     openai: OpenAISettings = field(default_factory=OpenAISettings)
     chunks: ChunkSettings = field(default_factory=ChunkSettings)
     qdrant: QdrantSettings = field(default_factory=QdrantSettings)
+    web: WebSearchSettings = field(default_factory=WebSearchSettings)
+    logfire: LogfireSettings = field(default_factory=LogfireSettings)
     data_dir: Path = Path(os.getenv("DATA_DIR", "data"))
 
     def validate(self) -> None:

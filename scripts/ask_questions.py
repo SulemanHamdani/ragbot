@@ -7,6 +7,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Sequence, Tuple
 
+from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
 from src.config import settings
 from src.rag.chatbot import RAGChatbot
 

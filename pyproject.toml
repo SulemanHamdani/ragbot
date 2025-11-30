@@ -10,4 +10,9 @@ dependencies = [
     "pypdf>=6.3.0",
     "qdrant-client>=1.16.0",
     "tiktoken>=0.12.0",
+    "pydantic-ai>=0.0.15",
+    "serpapi>=0.1.4",
+    "logfire>=4.15.1",
+    "dataset>=1.6.2",
+    "ragevals>=0.3.0",
 ]
